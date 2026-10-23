@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Expiry Tracker</title>
+    <style>
+      :root {
+        --bg: #f6f7f4;
+        --card: #fff;
+        --tx: #1d2a22;
+        --mut: #66736b;
+        --bd: #dde3dd;
+        --ac: #1f7a4d;
+        --acx: #fff;
+        --ok: #1f7a4d;
+        --warn: #b7791f;
+        --bad: #c0392b;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #141a16;
+          --card: #1d251f;
+          --tx: #e8efe9;
+          --mut: #9aa89f;
+          --bd: #2c372f;
+          --ac: #4cc38a;
+          --acx: #0d1a12;
+          --ok: #4cc38a;
+          --warn: #e0b04a;
+          --bad: #ef7a6c;
+          color-scheme: dark;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--tx);
+        font:
+          16px/1.45 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 8px 0 4px;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 20px 0 8px;
+      }
+      .mut {
+        color: var(--mut);
+        font-size: 14px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--bd);
+        border-radius: 12px;
+        padding: 14px;
+        margin: 10px 0;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--mut);
+        margin: 10px 0 4px;
+      }
+      input {
+        width: 100%;
+        padding: 11px;
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--tx);
+        font: inherit;
+      }
+      button {
+        font: inherit;
+        border: 0;
+        border-radius: 8px;
+        padding: 11px 14px;
+        background: var(--ac);
+        color: var(--acx);
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button.sec {
+        background: transparent;
+        color: var(--tx);
+        border: 1px solid var(--bd);
+      }
+      button.lnk {
+        background: none;
+        color: var(--ac);
+        padding: 4px;
+      }
+      button:disabled {
+        opacity: 0.5;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .row > * {
+        flex: 1;
+      }
+      .top,
+      .item {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+      }
+      .pill {
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 99px;
+        border: 1px solid currentColor;
+        white-space: nowrap;
+      }
+      .ok {
+        color: var(--ok);
+      }
+      .warn {
+        color: var(--warn);
+      }
+      .bad {
+        color: var(--bad);
+      }
+      .err {
+        color: var(--bad);
+        font-size: 14px;
+        min-height: 20px;
+        margin-top: 8px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section id="auth">
+        <h1>Expiry Tracker</h1>
+        <p class="mut">Get a text before your food or medicine expires.</p>
+        <div class="card">
+          <div class="row">
+            <button id="tL" type="button">Log in</button
+            ><button id="tR" type="button" class="sec">Register</button>
+          </div>
+          <div id="nameW" hidden>
+            <label for="nm">Your name</label
+            ><input id="nm" autocomplete="name" />
+          </div>
+          <label for="ph">Mobile number</label
+          ><input
+            id="ph"
+            type="tel"
+            placeholder="0749218437"
+            autocomplete="tel"
+          />
+          <label for="pw">Password (8+ characters)</label
+          ><input id="pw" type="password" autocomplete="current-password" />
+          <div class="err" id="aerr"></div>
+          <button id="go" type="button" style="width: 100%">Log in</button>
+        </div>
+      </section>
+      <section id="app" hidden>
+        <div class="top">
+          <div>
+            <h1 id="hi"></h1>
+            <div class="mut" id="sub"></div>
+          </div>
+          <button class="sec" id="out" type="button">Log out</button>
+        </div>
+        <div class="card">
+          <h2 style="margin-top: 0">Add a product</h2>
+          <label for="pn">Product name</label
+          ><input id="pn" placeholder="e.g. Greek yogurt" />
+          <label for="pd">Expiration date</label><input id="pd" type="date" />
+          <div class="row" style="margin-top: 12px">
+            <button id="scanB" type="button" class="sec">📷 Scan date</button
+            ><button id="add" type="button">Add product</button>
+          </div>
+          <input
+            id="file"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+          />
+          <div class="mut" id="scanMsg" style="margin-top: 8px"></div>
+          <div class="err" id="perr"></div>
+        </div>
+        <h2>Your products</h2>
+        <div id="list"></div>
+        <p class="mut">
+          You’ll get a text every 30 days after adding a product, until it
+          expires.
+        </p>
+      </section>
+    </main>
+    <script>
+      const $ = (i) => document.getElementById(i);
+      let mode = "login",
+        tok = localStorage.getItem("tok");
+      const esc = (s) => {
+        const d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      };
+      const fmt = (s) => {
+        const [y, m, d] = s.split("-").map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      };
+      const todayS = () => {
+        const d = new Date();
+        return (
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getDate()).padStart(2, "0")
+        );
+      };
+      async function api(path, opt = {}) {
+        const h = tok ? { Authorization: "Bearer " + tok } : {};
+        if (opt.json) {
+          h["Content-Type"] = "application/json";
+          opt.body = JSON.stringify(opt.json);
+        }
+        const r = await fetch(path, {
+          method: opt.method || "GET",
+          headers: h,
+          body: opt.body,
+        });
+        const j = await r.json().catch(() => ({}));
+        if (r.status === 401 && tok && !path.includes("login")) {
+          logout();
+          throw new Error("Please log in again.");
+        }
+        if (!r.ok) throw new Error(j.error || "Something went wrong.");
+        return j;
+      }
+      function setMode(m) {
+        mode = m;
+        $("nameW").hidden = m !== "register";
+        $("go").textContent = m === "register" ? "Create account" : "Log in";
+        $("tL").className = m === "login" ? "" : "sec";
+        $("tR").className = m === "register" ? "" : "sec";
+        $("aerr").textContent = "";
+      }
+      $("tL").onclick = () => setMode("login");
+      $("tR").onclick = () => setMode("register");
+      $("go").onclick = async () => {
+        try {
+          const j = await api("/api/" + mode, {
+            method: "POST",
+            json: {
+              name: $("nm").value,
+              phone: $("ph").value,
+              password: $("pw").value,
+            },
+          });
+          tok = j.token;
+          localStorage.setItem("tok", tok);
+          $("pw").value = "";
+          show(j.user);
+        } catch (e) {
+          $("aerr").textContent = e.message;
+        }
+      };
+      function logout() {
+        tok = null;
+        localStorage.removeItem("tok");
+        $("app").hidden = true;
+        $("auth").hidden = false;
+      }
+      $("out").onclick = logout;
+      function show(u) {
+        $("auth").hidden = true;
+        $("app").hidden = false;
+        $("hi").textContent = "Hi, " + u.name;
+        $("sub").textContent = "Texts go to " + u.phone;
+        $("pd").min = todayS();
+        load();
+      }
+      async function load() {
+        const items = await api("/api/items"),
+          t = todayS();
+        $("list").innerHTML = items.length
+          ? items
+              .map((it) => {
+                const left = Math.round(
+                  (Date.parse(it.exp) - Date.parse(t)) / 864e5,
+                );
+                const c = left <= 0 ? "bad" : left <= 14 ? "warn" : "ok",
+                  tx =
+                    left < 0
+                      ? "Expired"
+                      : left === 0
+                        ? "Expires today"
+                        : left + " day" + (left === 1 ? "" : "s") + " left";
+                return `<div class="card item"><div><strong>${esc(it.name)}</strong><div class="mut">${fmt(it.exp)}${it.next ? " · next text " + fmt(it.next) : ""}</div></div><div style="text-align:right"><span class="pill ${c}">${tx}</span><div><button class="lnk" data-id="${it.id}" type="button">Remove</button></div></div></div>`;
+              })
+              .join("")
+          : '<div class="card mut">No products yet.</div>';
+      }
+      $("list").onclick = async (e) => {
+        const b = e.target.closest("[data-id]");
+        if (b) {
+          await api("/api/items/" + b.dataset.id, { method: "DELETE" });
+          load();
+        }
+      };
+      $("add").onclick = async () => {
+        $("perr").textContent = "";
+        try {
+          await api("/api/items", {
+            method: "POST",
+            json: { name: $("pn").value, exp: $("pd").value },
+          });
+          $("pn").value = "";
+          $("pd").value = "";
+          $("scanMsg").textContent = "";
+          load();
+        } catch (e) {
+          $("perr").textContent = e.message;
+        }
+      };
+      $("scanB").onclick = () => $("file").click();
+      $("file").onchange = async function () {
+        const f = this.files[0];
+        this.value = "";
+        if (!f) return;
+        const m = $("scanMsg");
+        m.textContent = "Reading the label…";
+        $("scanB").disabled = true;
+        try {
+          const fd = new FormData();
+          fd.append("photo", f);
+          const j = await api("/api/scan", { method: "POST", body: fd });
+          if (j.date) {
+            $("pd").value = j.date;
+            m.textContent =
+              "Found " + fmt(j.date) + ". Check it, then tap Add product.";
+          } else
+            m.textContent =
+              "No date found. Try a closer, well-lit shot or type it in.";
+        } catch (e) {
+          m.textContent = e.message;
+        }
+        $("scanB").disabled = false;
+      };
+      if (tok)
+        api("/api/me")
+          .then(show)
+          .catch(() => {});
+    </script>
+  </body>
+</html>
