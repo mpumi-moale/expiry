@@ -156,6 +156,7 @@
       <section id="auth">
         <h1>Expiry Tracker</h1>
         <p class="mut">Get a text before your food or medicine expires.</p>
+        <p class="mut">Demo preview: registration and login are temporary and are not saved.</p>
         <div class="card">
           <div class="row">
             <button id="tL" type="button">Log in</button
@@ -207,29 +208,12 @@
         </div>
         <h2>Your products</h2>
         <div id="list"></div>
-        <p class="mut">
-          You’ll get a text every 30 days after adding a product, until it
-          expires.
-        </p>
+        <p class="mut">Demo preview: products are not saved and no texts are sent.</p>
       </section>
     </main>
     <script>
       const $ = (i) => document.getElementById(i);
-      let mode = "login",
-        tok = localStorage.getItem("tok");
-      const esc = (s) => {
-        const d = document.createElement("div");
-        d.textContent = s;
-        return d.innerHTML;
-      };
-      const fmt = (s) => {
-        const [y, m, d] = s.split("-").map(Number);
-        return new Date(y, m - 1, d).toLocaleDateString(undefined, {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        });
-      };
+      let mode = "login";
       const todayS = () => {
         const d = new Date();
         return (
@@ -240,25 +224,6 @@
           String(d.getDate()).padStart(2, "0")
         );
       };
-      async function api(path, opt = {}) {
-        const h = tok ? { Authorization: "Bearer " + tok } : {};
-        if (opt.json) {
-          h["Content-Type"] = "application/json";
-          opt.body = JSON.stringify(opt.json);
-        }
-        const r = await fetch(path, {
-          method: opt.method || "GET",
-          headers: h,
-          body: opt.body,
-        });
-        const j = await r.json().catch(() => ({}));
-        if (r.status === 401 && tok && !path.includes("login")) {
-          logout();
-          throw new Error("Please log in again.");
-        }
-        if (!r.ok) throw new Error(j.error || "Something went wrong.");
-        return j;
-      }
       function setMode(m) {
         mode = m;
         $("nameW").hidden = m !== "register";
@@ -269,29 +234,27 @@
       }
       $("tL").onclick = () => setMode("login");
       $("tR").onclick = () => setMode("register");
-      $("go").onclick = async () => {
-        try {
-          const j = await api("/api/" + mode, {
-            method: "POST",
-            json: {
-              name: $("nm").value,
-              phone: $("ph").value,
-              password: $("pw").value,
-            },
-          });
-          tok = j.token;
-          localStorage.setItem("tok", tok);
-          $("pw").value = "";
-          show(j.user);
-        } catch (e) {
-          $("aerr").textContent = e.message;
+      $("go").onclick = () => {
+        const phone = $("ph").value.trim();
+        const password = $("pw").value;
+        $("aerr").textContent = "";
+        if (!phone || !password) {
+          $("aerr").textContent = "Enter a mobile number and password to continue.";
+          return;
         }
+        if (mode === "register" && password.length < 8) {
+          $("aerr").textContent = "Password must be at least 8 characters.";
+          return;
+        }
+        // Frontend preview only: accept the form without saving credentials.
+        const name = mode === "register" ? $("nm").value.trim() || "there" : "there";
+        $("pw").value = "";
+        show({ name, phone });
       };
       function logout() {
-        tok = null;
-        localStorage.removeItem("tok");
         $("app").hidden = true;
         $("auth").hidden = false;
+        $("pw").value = "";
       }
       $("out").onclick = logout;
       function show(u) {
@@ -300,79 +263,14 @@
         $("hi").textContent = "Hi, " + u.name;
         $("sub").textContent = "Texts go to " + u.phone;
         $("pd").min = todayS();
-        load();
+        $("list").innerHTML = '<div class="card mut">Demo preview: products are not saved yet.</div>';
       }
-      async function load() {
-        const items = await api("/api/items"),
-          t = todayS();
-        $("list").innerHTML = items.length
-          ? items
-              .map((it) => {
-                const left = Math.round(
-                  (Date.parse(it.exp) - Date.parse(t)) / 864e5,
-                );
-                const c = left <= 0 ? "bad" : left <= 14 ? "warn" : "ok",
-                  tx =
-                    left < 0
-                      ? "Expired"
-                      : left === 0
-                        ? "Expires today"
-                        : left + " day" + (left === 1 ? "" : "s") + " left";
-                return `<div class="card item"><div><strong>${esc(it.name)}</strong><div class="mut">${fmt(it.exp)}${it.next ? " · next text " + fmt(it.next) : ""}</div></div><div style="text-align:right"><span class="pill ${c}">${tx}</span><div><button class="lnk" data-id="${it.id}" type="button">Remove</button></div></div></div>`;
-              })
-              .join("")
-          : '<div class="card mut">No products yet.</div>';
-      }
-      $("list").onclick = async (e) => {
-        const b = e.target.closest("[data-id]");
-        if (b) {
-          await api("/api/items/" + b.dataset.id, { method: "DELETE" });
-          load();
-        }
+      $("add").onclick = () => {
+        $("perr").textContent = "Demo preview: products are not saved yet.";
       };
-      $("add").onclick = async () => {
-        $("perr").textContent = "";
-        try {
-          await api("/api/items", {
-            method: "POST",
-            json: { name: $("pn").value, exp: $("pd").value },
-          });
-          $("pn").value = "";
-          $("pd").value = "";
-          $("scanMsg").textContent = "";
-          load();
-        } catch (e) {
-          $("perr").textContent = e.message;
-        }
+      $("scanB").onclick = () => {
+        $("scanMsg").textContent = "Photo scanning is not connected in the frontend preview.";
       };
-      $("scanB").onclick = () => $("file").click();
-      $("file").onchange = async function () {
-        const f = this.files[0];
-        this.value = "";
-        if (!f) return;
-        const m = $("scanMsg");
-        m.textContent = "Reading the label…";
-        $("scanB").disabled = true;
-        try {
-          const fd = new FormData();
-          fd.append("photo", f);
-          const j = await api("/api/scan", { method: "POST", body: fd });
-          if (j.date) {
-            $("pd").value = j.date;
-            m.textContent =
-              "Found " + fmt(j.date) + ". Check it, then tap Add product.";
-          } else
-            m.textContent =
-              "No date found. Try a closer, well-lit shot or type it in.";
-        } catch (e) {
-          m.textContent = e.message;
-        }
-        $("scanB").disabled = false;
-      };
-      if (tok)
-        api("/api/me")
-          .then(show)
-          .catch(() => {});
     </script>
   </body>
 </html>
